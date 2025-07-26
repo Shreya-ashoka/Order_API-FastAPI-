@@ -1,66 +1,81 @@
-from pydantic import BaseModel, EmailStr
-from typing import Optional, List
+from pydantic import BaseModel
+from typing import List, Optional
 from datetime import datetime
 
+
+# ✅ Shared Audit Fields
+class CommonAuditFields(BaseModel):
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+    creation_channel: Optional[str] = None
+    update_channel: Optional[str] = None
+    created_by: Optional[str] = None
+    updated_by: Optional[str] = None
+
+    class Config:
+        orm_mode = True
+
+
+# ✅ Subsection Parameters
 class SubsectionParameterBase(BaseModel):
-    parameter_name: Optional[str] = None
+    parameter_name: str
+
 
 class SubsectionParameterCreate(SubsectionParameterBase):
     pass
 
-class SubsectionParameter(SubsectionParameterBase):
+
+class SubsectionParameter(SubsectionParameterBase, CommonAuditFields):
     id: int
     item_id: int
 
-    class Config:
-        orm_mode = True
 
-
+# ✅ Ordered Item (NO order_id in Create)
 class OrderedItemBase(BaseModel):
     item_name: str
     description: Optional[str] = None
+    price: Optional[int] = None
+
 
 class OrderedItemCreate(OrderedItemBase):
-    order_id: int
-    parameters: List[SubsectionParameterCreate] = []  # ✅ FIXED: was missing
+    parameters: Optional[List[SubsectionParameterCreate]] = []
 
-class OrderedItem(OrderedItemBase):
+
+class OrderedItem(OrderedItemBase, CommonAuditFields):
     id: int
-    order_id: int
+    order_id: Optional[int] = None
     parameters: List[SubsectionParameter] = []
 
-    class Config:
-        orm_mode = True
 
-
+# ✅ Order
 class OrderBase(BaseModel):
-    status: Optional[str] = None
+    status: Optional[str] = "pending"
 
-class OrderCreate(OrderBase):
+
+# Use this when creating order from existing item IDs
+class OrderCreateWithItemIDs(OrderBase):
     customer_id: int
+    item_ids: List[int]
 
-class Order(OrderBase):
+
+class Order(OrderBase, CommonAuditFields):
     id: int
-    timestamp: datetime
     customer_id: int
     ordered_items: List[OrderedItem] = []
 
-    class Config:
-        orm_mode = True
 
-
+# ✅ Customer
 class CustomerBase(BaseModel):
     name: str
-    email: EmailStr
+    email: str
     contact_no: Optional[str] = None
     purchase: Optional[str] = None
+
 
 class CustomerCreate(CustomerBase):
     pass
 
-class Customer(CustomerBase):
+
+class Customer(CustomerBase, CommonAuditFields):
     id: int
     orders: List[Order] = []
-
-    class Config:
-        orm_mode = True
