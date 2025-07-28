@@ -3,7 +3,6 @@ from typing import List, Optional
 from datetime import datetime
 
 
-# ✅ Shared Audit Fields
 class CommonAuditFields(BaseModel):
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
@@ -16,10 +15,11 @@ class CommonAuditFields(BaseModel):
         orm_mode = True
 
 
-# ✅ Subsection Parameters
 class SubsectionParameterBase(BaseModel):
     parameter_name: str
 
+    class Config:
+        orm_mode = True
 
 class SubsectionParameterCreate(SubsectionParameterBase):
     pass
@@ -29,12 +29,17 @@ class SubsectionParameter(SubsectionParameterBase, CommonAuditFields):
     id: int
     item_id: int
 
+    class Config:
+        orm_mode = True
 
-# ✅ Ordered Item (NO order_id in Create)
+
 class OrderedItemBase(BaseModel):
     item_name: str
     description: Optional[str] = None
     price: Optional[int] = None
+
+    class Config:
+        orm_mode = True
 
 
 class OrderedItemCreate(OrderedItemBase):
@@ -46,31 +51,40 @@ class OrderedItem(OrderedItemBase, CommonAuditFields):
     order_id: Optional[int] = None
     parameters: List[SubsectionParameter] = []
 
+    class Config:
+        orm_mode = True
 
-# ✅ Order
 class OrderBase(BaseModel):
     status: Optional[str] = "pending"
 
+    class Config:
+        orm_mode = True
 
-# Use this when creating order from existing item IDs
+
 class OrderCreateWithItemIDs(OrderBase):
     customer_id: int
     item_ids: List[int]
 
-
 class Order(OrderBase, CommonAuditFields):
     id: int
     customer_id: int
+    customer_name: Optional[str] = None  
     ordered_items: List[OrderedItem] = []
 
+    class Config:
+        orm_mode = True
+        
+class OrderStatusUpdate(BaseModel):
+    status: str
 
-# ✅ Customer
+
 class CustomerBase(BaseModel):
     name: str
     email: str
     contact_no: Optional[str] = None
-    purchase: Optional[str] = None
 
+    class Config:
+        orm_mode = True
 
 class CustomerCreate(CustomerBase):
     pass
@@ -79,3 +93,7 @@ class CustomerCreate(CustomerBase):
 class Customer(CustomerBase, CommonAuditFields):
     id: int
     orders: List[Order] = []
+
+    class Config:
+        orm_mode = True
+
