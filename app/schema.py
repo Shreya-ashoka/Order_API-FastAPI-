@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import List, Optional
 from datetime import datetime
 
@@ -43,16 +43,17 @@ class OrderedItemBase(BaseModel):
 
 
 class OrderedItemCreate(OrderedItemBase):
-    parameters: Optional[List[SubsectionParameterCreate]] = []
+    parameters: Optional[List[SubsectionParameterCreate]] = Field(default_factory=list)
 
 
 class OrderedItem(OrderedItemBase, CommonAuditFields):
     id: int
     order_id: Optional[int] = None
-    parameters: List[SubsectionParameter] = []
+    parameters: Optional[List[SubsectionParameter]] = Field(default_factory=list)
 
     class Config:
         orm_mode = True
+
 
 class OrderBase(BaseModel):
     status: Optional[str] = "pending"
@@ -61,15 +62,14 @@ class OrderBase(BaseModel):
         orm_mode = True
 
 
-class OrderCreateWithItemIDs(OrderBase):
+class OrderCreate(OrderBase):
     customer_id: int
     item_ids: List[int]
 
 class Order(OrderBase, CommonAuditFields):
     id: int
     customer_id: int
-    customer_name: Optional[str] = None  
-    ordered_items: List[OrderedItem] = []
+    items: List[OrderedItem] = []
 
     class Config:
         orm_mode = True
@@ -92,7 +92,7 @@ class CustomerCreate(CustomerBase):
 
 class Customer(CustomerBase, CommonAuditFields):
     id: int
-    orders: List[Order] = []
+    orders: List[Order] = Field(default_factory=list)
 
     class Config:
         orm_mode = True

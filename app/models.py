@@ -3,7 +3,7 @@ from sqlalchemy.orm import relationship, declarative_mixin
 from datetime import datetime
 from app.database import Base
 
-@declarative_mixin #create reusable field definitions
+@declarative_mixin
 class CommonBase:
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -16,39 +16,50 @@ class CommonBase:
 class Customer(Base, CommonBase):
     __tablename__ = "customers"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(BigInteger, primary_key=True, index=True)
     name = Column(String, nullable=False)
     email = Column(String, unique=True, index=True)
     contact_no = Column(String)
-    orders = relationship("Order", back_populates="customer")
+
+    # One-to-many: Customer → Orders
+    orders = relationship("Order", back_populates="customer", cascade="all, delete-orphan")
 
 
 class Order(Base, CommonBase):
     __tablename__ = "orders"
 
     id = Column(BigInteger, primary_key=True, index=True)
-    status = Column(String)
-    customer_id = Column(Integer, ForeignKey("customers.id"))
+    status = Column(String, nullable=False)
+    customer_id = Column(BigInteger, ForeignKey("customers.id"), nullable=False)
+
+    # Many-to-one: Order → Customer
     customer = relationship("Customer", back_populates="orders")
-    ordered_items = relationship("OrderedItem", back_populates="order")
+
+    # One-to-many: Order → OrderedItems
+    items = relationship("OrderedItem", back_populates="order", cascade="all, delete-orphan")
 
 
 class OrderedItem(Base, CommonBase):
     __tablename__ = "ordered_items"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(BigInteger, primary_key=True, index=True)
     item_name = Column(String, nullable=False)
     description = Column(String)
-    price = Column(Integer)
+    price = Column(Integer, nullable=False)
     order_id = Column(BigInteger, ForeignKey("orders.id"), nullable=True)
-    order = relationship("Order", back_populates="ordered_items")
-    parameters = relationship("SubsectionParameter", back_populates="item")
+
+    order = relationship("Order", back_populates="items")
+
+    # One-to-many: OrderedItem → Parameters
+    parameters = relationship("SubsectionParameter", back_populates="item", cascade="all, delete-orphan")
 
 
 class SubsectionParameter(Base, CommonBase):
     __tablename__ = "subsection_parameters"
 
-    id = Column(Integer, primary_key=True, index=True)
-    parameter_name = Column(String)
-    item_id = Column(Integer, ForeignKey("ordered_items.id"))
+    id = Column(BigInteger, primary_key=True, index=True)
+    parameter_name = Column(String, nullable=False)
+    item_id = Column(BigInteger, ForeignKey("ordered_items.id"), nullable=False)
+
+    # Many-to-one: SubsectionParameter → OrderedItem
     item = relationship("OrderedItem", back_populates="parameters")
