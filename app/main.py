@@ -118,7 +118,7 @@ def create_order(order: schema.OrderCreate, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail="Invalid customer_id")
     
     try:
-        return crud.create_order_with_existing_items(db=db, order=order, audit=get_audit())
+        return crud.create_order(db=db, order=order, audit=get_audit())
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to create order: {str(e)}")
     return schema.Order
@@ -156,9 +156,9 @@ def update_order_status(order_id: int, status_update: schema.OrderStatusUpdate, 
     return order
 
 
-@app.delete("/orders/{order_id}", response_model=schema.Order,response_model_exclude_none=True)
+@app.delete("/orders/{order_id}")
 def delete_order(order_id: int, db: Session = Depends(get_db)):
-    order = crud.delete_order(db, order_id)
-    if not order:
+    result = crud.delete_order(db, order_id)
+    if not result:
         raise HTTPException(status_code=404, detail="Order not found")
-    return order
+    return {"message": "Order deleted", "order": result}

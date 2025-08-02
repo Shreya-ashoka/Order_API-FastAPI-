@@ -16,14 +16,16 @@ def get_customers(db: Session):
     return db.query(models.Customer).all()
 
 def get_customer_by_id(db: Session, customer_id: int):
-    return db.query(models.Customer)\
+    return (
+        db.query(models.Customer)
         .options(
             joinedload(models.Customer.orders)
             .joinedload(models.Order.items)
-        )\
-        .filter(models.Customer.id == customer_id)\
+            .joinedload(models.OrderedItem.parameters)
+        )
+        .filter(models.Customer.id == customer_id)
         .first()
-
+    )
 
 def get_customer_by_name(db: Session, customer_name: str):
     return db.query(models.Customer)\
@@ -50,7 +52,6 @@ def delete_customer(db: Session, customer_id:int):
         db.commit()
         return True
     return False
-
 def create_ordered_item(db: Session, item: schema.OrderedItemCreate, audit: dict = {}):
     db_item = models.OrderedItem(
         item_name=item.item_name,
@@ -59,7 +60,7 @@ def create_ordered_item(db: Session, item: schema.OrderedItemCreate, audit: dict
         **audit
     )
     db.add(db_item)
-    db.flush()  
+    db.flush()
 
     for param in item.parameters or []:
         db_param = models.SubsectionParameter(
@@ -70,17 +71,30 @@ def create_ordered_item(db: Session, item: schema.OrderedItemCreate, audit: dict
         db.add(db_param)
 
     db.commit()
-    db.refresh(db_item)
-    return db_item
+
+    return (
+        db.query(models.OrderedItem)
+        .options(joinedload(models.OrderedItem.parameters))
+        .filter(models.OrderedItem.id == db_item.id)
+        .first()
+    )
     
 
 def get_items(db: Session):
-    return db.query(models.OrderedItem).all()
+    return (
+        db.query(models.OrderedItem)
+        .options(joinedload(models.OrderedItem.parameters))
+        .all()
+    )
 
 
 def get_item_by_id(db: Session, item_id: int):
-    return db.query(models.OrderedItem).filter(models.OrderedItem.id == item_id).first()
-
+    return (
+        db.query(models.OrderedItem)
+        .options(joinedload(models.OrderedItem.parameters))
+        .filter(models.OrderedItem.id == item_id)
+        .first()
+    )
 def update_item(db: Session, item_id: int, updated_data: schema.OrderedItemCreate):
     item = get_item_by_id(db, item_id)
     if not item:
@@ -109,7 +123,8 @@ def delete_item(db: Session, item_id: int):
         db.commit()
     return item
 
-def create_order_with_existing_items(db: Session, order: schema.OrderCreate, audit: dict):
+
+def create_order(db: Session, order: schema.OrderCreate, audit: dict):
     db_order = models.Order(
         status=order.status,
         customer_id=order.customer_id,
@@ -119,6 +134,7 @@ def create_order_with_existing_items(db: Session, order: schema.OrderCreate, aud
     db.commit()
     db.refresh(db_order)
 
+    # Link items to the order
     for item_id in order.item_ids:
         db_item = db.query(models.OrderedItem).filter(models.OrderedItem.id == item_id).first()
         if db_item:
@@ -127,15 +143,23 @@ def create_order_with_existing_items(db: Session, order: schema.OrderCreate, aud
                 setattr(db_item, k, v)
 
     db.commit()
-    return db_order
+
+    return (
+        db.query(models.Order)
+        .options(
+            joinedload(models.Order.items).joinedload(models.OrderedItem.parameters)
+        )
+        .filter(models.Order.id == db_order.id)
+        .first()
+    )
 
 
 def get_orders(db: Session, skip: int = 0, limit: int = 100):
     return (
         db.query(models.Order)
         .options(
-            joinedload(models.Order.customer),
-            joinedload(models.Order.items).joinedload(models.OrderedItem.parameters)
+            joinedload(models.Order.items)
+            .joinedload(models.OrderedItem.parameters)
         )
         .offset(skip)
         .limit(limit)
@@ -152,7 +176,8 @@ def get_order_with_details_by_id(db: Session, order_id: int):
     return (
         db.query(models.Order)
         .options(
-            joinedload(models.Order.items).joinedload(models.OrderedItem.parameters)
+            joinedload(models.Order.items)
+            .joinedload(models.OrderedItem.parameters)
         )
         .filter(models.Order.id == order_id)
         .first()
@@ -172,7 +197,11 @@ def update_order(db: Session, order_id: int, data: schema.OrderCreate, audit: di
 
 def delete_order(db: Session, order_id: int):
     order = get_order_by_id(db, order_id)
-    if order:
-        db.delete(order)
-        db.commit()
-    return order
+    if not order:
+        return None
+    
+    order_data = {"id": order.id, "status": order.status}
+
+    db.delete(order)
+    db.commit()
+    return order_data
