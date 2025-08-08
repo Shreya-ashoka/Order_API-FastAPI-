@@ -2,7 +2,6 @@ from pydantic import BaseModel, Field
 from typing import List, Optional
 from datetime import datetime
 
-
 class CommonAuditFields(BaseModel):
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
@@ -24,7 +23,6 @@ class SubsectionParameterBase(BaseModel):
 class SubsectionParameterCreate(SubsectionParameterBase):
     pass
 
-
 class SubsectionParameter(SubsectionParameterBase, CommonAuditFields):
     id: int
     item_id: int
@@ -41,10 +39,15 @@ class OrderedItemBase(BaseModel):
     class Config:
         orm_mode = True
 
-
 class OrderedItemCreate(OrderedItemBase):
+    order_id: int  
     parameters: Optional[List[SubsectionParameterCreate]] = Field(default_factory=list)
 
+class OrderedItemUpdate(BaseModel): 
+    item_name: Optional[str] = None
+    description: Optional[str] = None
+    price: Optional[int] = None
+    parameters: Optional[List[SubsectionParameterCreate]] = Field(default_factory=list)
 
 class OrderedItem(OrderedItemBase, CommonAuditFields):
     id: int
@@ -61,19 +64,21 @@ class OrderBase(BaseModel):
     class Config:
         orm_mode = True
 
-
 class OrderCreate(OrderBase):
     customer_id: int
-    item_ids: List[int]
+
+class OrderUpdate(BaseModel):  
+    status: Optional[str] = None
+    customer_id: Optional[int] = None
 
 class Order(OrderBase, CommonAuditFields):
     id: int
-    customer_id: int
+    customer_id: Optional[int] = None
     items: List[OrderedItem] = []
 
     class Config:
         orm_mode = True
-        
+
 class OrderStatusUpdate(BaseModel):
     status: str
 
@@ -89,6 +94,10 @@ class CustomerBase(BaseModel):
 class CustomerCreate(CustomerBase):
     pass
 
+class CustomerUpdate(BaseModel):  
+    name: Optional[str] = None
+    email: Optional[str] = None
+    contact_no: Optional[str] = None
 
 class Customer(CustomerBase, CommonAuditFields):
     id: int
@@ -96,4 +105,3 @@ class Customer(CustomerBase, CommonAuditFields):
 
     class Config:
         orm_mode = True
-

@@ -21,7 +21,6 @@ class Customer(Base, CommonBase):
     email = Column(String, unique=True, index=True)
     contact_no = Column(String)
 
-    # One-to-many: Customer → Orders
     orders = relationship("Order", back_populates="customer", cascade="all, delete-orphan")
 
 
@@ -32,10 +31,8 @@ class Order(Base, CommonBase):
     status = Column(String, nullable=False)
     customer_id = Column(BigInteger, ForeignKey("customers.id"), nullable=False)
 
-    # Many-to-one: Order → Customer
     customer = relationship("Customer", back_populates="orders")
 
-    # One-to-many: Order → OrderedItems
     items = relationship("OrderedItem", back_populates="order", cascade="all, delete-orphan")
 
 
@@ -50,7 +47,6 @@ class OrderedItem(Base, CommonBase):
 
     order = relationship("Order", back_populates="items")
 
-    # One-to-many: OrderedItem → Parameters
     parameters = relationship("SubsectionParameter", back_populates="item", cascade="all, delete-orphan")
 
 
@@ -61,5 +57,4 @@ class SubsectionParameter(Base, CommonBase):
     parameter_name = Column(String, nullable=False)
     item_id = Column(BigInteger, ForeignKey("ordered_items.id"), nullable=False)
 
-    # Many-to-one: SubsectionParameter → OrderedItem
     item = relationship("OrderedItem", back_populates="parameters")
